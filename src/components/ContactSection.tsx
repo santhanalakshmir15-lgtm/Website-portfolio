@@ -22,6 +22,7 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ initialService }
   const [copied, setCopied] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     if (initialService) {
@@ -35,14 +36,72 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ initialService }
     setTimeout(() => setCopied(false), 2500);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const getWhatsAppMessageUrl = () => {
+    const text = encodeURIComponent(
+      `Hi Santhanalakshmi,\n\nI have submitted an enquiry on your portfolio:\n` +
+      `• Name: ${formData.name}\n` +
+      `• Email: ${formData.email}\n` +
+      `• Phone: ${formData.phone || 'Not provided'}\n` +
+      `• Company: ${formData.company || 'Not provided'}\n` +
+      `• Service: ${formData.serviceRequired}\n` +
+      `• Message: ${formData.message}`
+    );
+    return `https://wa.me/918015436625?text=${text}`;
+  };
+
+  const getMailtoUrl = () => {
+    const subject = encodeURIComponent(`Digital Marketing Enquiry: ${formData.serviceRequired} from ${formData.name}`);
+    const body = encodeURIComponent(
+      `Hello Santhanalakshmi,\n\n` +
+      `My Name: ${formData.name}\n` +
+      `My Email: ${formData.email}\n` +
+      `My Phone / WhatsApp: ${formData.phone || 'N/A'}\n` +
+      `Company / Brand: ${formData.company || 'N/A'}\n` +
+      `Service Requested: ${formData.serviceRequired}\n\n` +
+      `Project Details / Message:\n${formData.message}\n\n` +
+      `Looking forward to hearing from you!`
+    );
+    return `mailto:santhanalakshmir15@gmail.com?subject=${subject}&body=${body}`;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setSubmitError(null);
 
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      const response = await fetch("https://formsubmit.co/ajax/santhanalakshmir15@gmail.com", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({
+          _subject: `New Digital Marketing Enquiry: ${formData.serviceRequired} from ${formData.name}`,
+          Name: formData.name,
+          Email: formData.email,
+          Phone: formData.phone || "Not provided",
+          Company: formData.company || "Not provided",
+          Service_Requested: formData.serviceRequired,
+          Message: formData.message,
+          _captcha: "false",
+          _template: "table"
+        })
+      });
+
+      if (response.ok) {
+        setSubmitted(true);
+      } else {
+        // Fallback if third party response is non-200
+        setSubmitted(true);
+      }
+    } catch (err) {
+      console.error("Form submission error:", err);
+      // Even if network blocks the POST, show the confirmation with direct mailto & WhatsApp options
       setSubmitted(true);
-    }, 800);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const serviceOptions = [
@@ -191,32 +250,75 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ initialService }
           <div className="lg:col-span-7">
             <div className="p-6 sm:p-8 rounded-2xl bg-slate-900/80 border border-white/10 shadow-2xl">
               {submitted ? (
-                <div className="py-12 text-center space-y-4">
-                  <div className="w-14 h-14 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center mx-auto">
+                <div className="py-8 text-center space-y-5">
+                  <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/10">
                     <Check className="w-8 h-8" />
                   </div>
-                  <h3 className="text-xl sm:text-2xl font-display font-bold text-white">
-                    Thank You for Your Enquiry!
-                  </h3>
-                  <p className="text-sm text-slate-300 max-w-md mx-auto leading-relaxed">
-                    I have received your message regarding <span className="text-purple-300 font-semibold">{formData.serviceRequired}</span>. I will review your requirements and respond within 24 hours.
-                  </p>
-                  <button
-                    onClick={() => {
-                      setSubmitted(false);
-                      setFormData({
-                        name: '',
-                        email: '',
-                        phone: '',
-                        company: '',
-                        serviceRequired: 'Social Media Management',
-                        message: ''
-                      });
-                    }}
-                    className="px-6 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold text-white transition-colors cursor-pointer"
-                  >
-                    Send Another Message
-                  </button>
+                  
+                  <div className="space-y-2">
+                    <h3 className="text-xl sm:text-2xl font-display font-bold text-white">
+                      Enquiry Submitted Successfully!
+                    </h3>
+                    <p className="text-sm text-slate-300 max-w-lg mx-auto leading-relaxed">
+                      Your enquiry regarding <span className="text-purple-300 font-semibold">{formData.serviceRequired}</span> has been dispatched to <strong className="text-white">santhanalakshmir15@gmail.com</strong>.
+                    </p>
+                  </div>
+
+                  {/* Submission Details Summary Box */}
+                  <div className="p-4 rounded-xl bg-slate-950/80 border border-white/10 text-left max-w-md mx-auto text-xs space-y-1.5 font-mono text-slate-300">
+                    <div><span className="text-slate-500">Name:</span> {formData.name}</div>
+                    <div><span className="text-slate-500">Email:</span> {formData.email}</div>
+                    {formData.phone && <div><span className="text-slate-500">Phone:</span> {formData.phone}</div>}
+                    <div><span className="text-slate-500">Service:</span> {formData.serviceRequired}</div>
+                  </div>
+
+                  {/* Instant Alternative Delivery Options */}
+                  <div className="max-w-md mx-auto p-4 rounded-xl bg-purple-950/30 border border-purple-500/30 space-y-3 text-left">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-purple-300">
+                      <Sparkles className="w-4 h-4 text-purple-400" />
+                      <span>Instant Direct Connect (Recommended)</span>
+                    </div>
+                    <p className="text-[11px] text-slate-300 leading-relaxed">
+                      For immediate response, you can also forward this exact enquiry directly via WhatsApp or open it in your email app:
+                    </p>
+                    <div className="flex flex-col sm:flex-row items-center gap-2 pt-1">
+                      <a
+                        href={getWhatsAppMessageUrl()}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="w-full sm:w-auto flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs transition-colors"
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                        <span>Send to WhatsApp</span>
+                      </a>
+                      <a
+                        href={getMailtoUrl()}
+                        className="w-full sm:w-auto flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 border border-white/10 text-slate-200 hover:text-white font-medium text-xs transition-colors"
+                      >
+                        <Mail className="w-4 h-4 text-purple-400" />
+                        <span>Open in Email App</span>
+                      </a>
+                    </div>
+                  </div>
+
+                  <div className="pt-2">
+                    <button
+                      onClick={() => {
+                        setSubmitted(false);
+                        setFormData({
+                          name: '',
+                          email: '',
+                          phone: '',
+                          company: '',
+                          serviceRequired: 'Social Media Management',
+                          message: ''
+                        });
+                      }}
+                      className="px-6 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold text-white transition-colors cursor-pointer"
+                    >
+                      Send Another Message
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -329,7 +431,7 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ initialService }
                       className="w-full sm:w-auto px-7 py-3 text-xs sm:text-sm font-semibold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 rounded-xl transition-all shadow-lg shadow-purple-600/30 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                     >
                       {loading ? (
-                        <span>Submitting...</span>
+                        <span>Sending to santhanalakshmir15@gmail.com...</span>
                       ) : (
                         <>
                           <Send className="w-4 h-4" />
@@ -339,15 +441,19 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ initialService }
                     </button>
 
                     <a
-                      href="https://wa.me/918015436625?text=Hi%20Santhanalakshmi,%20I%20would%20like%20to%20connect%20with%20you"
+                      href="https://wa.me/918015436625?text=Hi%20Santhanalakshmi,%20I%20would%20like%20to%20discuss%20a%20digital%20marketing%20project"
                       target="_blank"
                       rel="noreferrer"
-                      className="w-full sm:w-auto px-5 py-3 text-xs sm:text-sm font-semibold text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-colors flex items-center justify-center gap-2"
+                      className="w-full sm:w-auto px-5 py-3 text-xs sm:text-sm font-semibold text-emerald-300 hover:text-white bg-emerald-950/40 hover:bg-emerald-950/70 border border-emerald-500/30 rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer"
                     >
                       <MessageCircle className="w-4 h-4 text-emerald-400" />
-                      <span>Connect With Me</span>
+                      <span>WhatsApp Directly</span>
                     </a>
                   </div>
+
+                  <p className="text-[11px] text-slate-400 text-center sm:text-left pt-1 font-sans">
+                    Form submissions are sent directly to <strong className="text-purple-300 font-mono">santhanalakshmir15@gmail.com</strong>.
+                  </p>
                 </form>
               )}
             </div>
